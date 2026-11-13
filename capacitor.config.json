@@ -9,7 +9,14 @@
   },
   "plugins": {
     "LocalNotifications": {
-      "presentationOptions": ["badge", "sound", "alert"]
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    },
+    "CapacitorHttp": {
+      "enabled": true
     }
   }
 }

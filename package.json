@@ -6,7 +6,8 @@
   "dependencies": {
     "@capacitor/core": "latest",
     "@capacitor/ios": "latest",
-    "@capacitor/local-notifications": "latest"
+    "@capacitor/local-notifications": "latest",
+    "@capacitor/app": "latest"
   },
   "devDependencies": {
     "@capacitor/cli": "latest"

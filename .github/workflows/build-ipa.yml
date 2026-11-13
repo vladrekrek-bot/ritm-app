@@ -53,6 +53,12 @@ jobs:
             /usr/libexec/PlistBuddy -c "Add :$K:0 string UIInterfaceOrientationPortrait" $PL
           done
           /usr/libexec/PlistBuddy -c "Add :UIRequiresFullScreen bool true" $PL || true
+          # ссылка ritm:// — чтобы страница Claude могла вернуть результат в приложение
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" $PL || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" $PL
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.shkwizi.ritm" $PL
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" $PL
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string ritm" $PL
           /usr/libexec/PlistBuddy -c "Add :UIStatusBarStyle string UIStatusBarStyleLightContent" $PL || true
           /usr/libexec/PlistBuddy -c "Add :UIViewControllerBasedStatusBarAppearance bool false" $PL || true
           plutil -p $PL | grep -A3 Orientation

@@ -442,6 +442,20 @@ function parseFood(text){
  return out;
 }
 
+const FOODURL='https://claude.ai/artifact/Ur6k8suMjG1uqLmG3DCF1A';
+function decodeFood(t){const m=String(t||'').match(/RITMFOOD:([A-Za-z0-9+/=]+)/);if(!m)return null;try{const d=JSON.parse(decodeURIComponent(escape(atob(m[1]))));if(!d||!(d.k>=0))return null;return d}catch(e){return null}}
+async function pasteClaude(){let t='';try{t=await navigator.clipboard.readText()}catch(e){}const d=decodeFood(t);if(d)return confirmFood(d);
+ sheet(`<h2>📋 Вставить из Claude</h2><div class="mut" style="font-size:13px">Не нашёл результат в буфере. Вставь его сюда вручную (долгое нажатие → «Вставить»)</div><textarea id="pcT" rows="4" style="margin-top:12px;font-size:12px;font-family:monospace" placeholder="RITMFOOD:..."></textarea><div class="err" id="pcE"></div><div class="row"><button class="btn" id="pcX">Отмена</button><button class="btn pri" id="pcS">Готово</button></div>`);
+ $('#pcX').onclick=closeModal;$('#pcS').onclick=()=>{const d=decodeFood($('#pcT').value);if(!d)return $('#pcE').textContent='Это не результат из Claude — нажми там «Скопировать для RITM»';confirmFood(d)}}
+function confirmFood(d){let m=1;const draw=()=>{const T={k:d.k*m,p:d.p*m,f:d.f*m,c:d.c*m};
+ sheet(`<div class="mut" style="font-size:12px;font-weight:800">📸 РЕЗУЛЬТАТ ИЗ CLAUDE</div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:4px"><h2 style="margin:0">${esc(d.dish)}</h2><span style="font-family:Unbounded;font-size:22px">${Math.round(T.k)}<span class="mut" style="font-size:12px"> ккал</span></span></div>
+ ${(d.items||[]).length?`<table style="margin-top:8px">${d.items.map(([n,g,k])=>`<tr><td>${esc(n)}</td><td class="r">${Math.round(g*m)} г</td><td class="r">${Math.round(k*m)}</td></tr>`).join('')}</table>`:''}
+ <div class="mut" style="font-size:13px;margin-top:8px">Б ${Math.round(T.p)} · Ж ${Math.round(T.f)} · У ${Math.round(T.c)}</div>
+ <label class="f">Съел на самом деле</label><div class="chips">${[[.5,'половину'],[.75,'×0.75'],[1,'всё'],[1.25,'×1.25'],[1.5,'×1.5']].map(([v,t])=>`<div class="chip ${m===v?'on':''}" data-cm="${v}">${t}</div>`).join('')}</div>
+ <div class="row mt"><button class="btn" id="cfX">Отмена</button><button class="btn pri" id="cfS">✅ Засчитать</button></div>`);
+ $$('[data-cm]').forEach(c=>c.onclick=()=>{m=+c.dataset.cm;draw()});$('#cfX').onclick=closeModal;
+ $('#cfS').onclick=()=>{addLog({name:d.dish,k:T.k,p:T.p,f:T.f,c:T.c,photo:1});try{navigator.clipboard.writeText('')}catch(e){}closeModal();go('food');toast('✅','Засчитано',d.dish+' · '+Math.round(T.k)+' ккал')}};draw()}
+
 /* ===== тренировки ===== */
 function workoutFor(groups,goal){const n=groups.filter(g=>g!=='cardio').length||1,per=Math.max(2,Math.min(4,Math.round(7/n)));const ex=[];
  groups.forEach(g=>{if(g==='cardio')return;(LIB[g]||[]).slice(0,g==='forearms'||g==='abs'?2:per).forEach(([a,b])=>ex.push([a,goal==='bulk'&&['chest','back','shoulders','legs'].includes(g)?b.replace(/×1[25]/,'×10').replace(/4×8/,'4×6–8'):b,g]))});
@@ -565,7 +579,10 @@ function vFood(){
    <div class="evlist" style="margin-top:12px">${LOG.map(x=>`<div class="ev" style="--c:#5fe39a;cursor:default"><div class="evi">${x.photo?'📸':'🍴'}</div><div class="evb"><div class="ti">${esc(x.name)}</div><div class="no">${x.time} · ${Math.round(x.k)} ккал · Б${Math.round(x.p)} Ж${Math.round(x.f)} У${Math.round(x.c)}</div></div><button class="mb" data-dl="${x.id}">✕</button></div>`).join('')||'<div class="mut" style="font-size:14px">Пока ничего. Нажми «Добавить» и просто напиши, что съел</div>'}</div></div>
   ${SAMPLE?`<div class="glass pad"><h3 style="margin-bottom:4px">📸 Фото еды</h3><div class="mut" style="font-size:14px">ИИ определит блюдо, граммовку и калории</div>
    <label class="drop" id="drop" for="photoIn"><div style="font-size:36px">📷</div><b>Сфоткать или выбрать из галереи</b></label><input type="file" id="photoIn" accept="image/*" hidden><div id="photoRes"></div></div>`
-  :`<div class="glass pad"><h3>💡 Как добавлять еду</h3><div class="note">Нажми «＋ Добавить» и просто напиши, например: <b>«3 яйца, хлеб»</b>, <b>«мясо с рисом»</b>, <b>«чипсы»</b>, <b>«200г курицы и гречка»</b>. Калории и БЖУ посчитаются сами — можно поправить вручную.</div></div>`}
+  :`<div class="glass pad"><h3 style="margin-bottom:4px">📸 Фото еды</h3><div class="mut" style="font-size:14px">Claude посчитает калории по фото — можно сфоткать сейчас или выбрать из галереи</div>
+   <div class="note" style="margin-top:10px;line-height:1.6">1. Нажми <b>«Открыть Claude»</b> и выбери фото<br>2. Там нажми <b>«Посчитать»</b> → <b>«Скопировать для RITM»</b><br>3. Вернись сюда → <b>«Вставить из Claude»</b></div>
+   <div class="row mt"><a class="btn" href="${FOODURL}" target="_blank" rel="noopener">📷 Открыть Claude</a><button class="btn pri" id="pasteC">📋 Вставить из Claude</button></div>
+   <div class="mut" style="font-size:12.5px;margin-top:12px">Без фото: «＋ Добавить» и напиши, например, «мясо с рисом» — посчитаю сам.</div></div>`}
  </div>
  <div class="grid g4 mt">${[['Калории',N.kcal,''],['Белки',N.prot,' г'],['Жиры',N.fat,' г'],['Углеводы',N.carb,' г']].map(([l,v,u])=>`<div class="glass pad stat"><div class="l">${l} / день</div><div class="v">${Math.round(v)}${u}</div></div>`).join('')}</div>
  <div class="note mt">Обмен ≈ ${Math.round(N.bmr)} ккал · с активностью ≈ ${Math.round(N.tdee)} ккал · вода ≈ ${N.water} л. ${p.goal==='cut'?'На сушке — минус 0,5–1% веса в неделю; если вес стоит 2 недели, убираем ~100 ккал.':p.goal==='bulk'?'На массе — +0,25–0,5 кг в месяц, иначе растёт жир.':''}${N.teen?' <b>До 18 лет — без жёстких диет, дефицит мягкий.</b>':''}</div>
@@ -573,7 +590,7 @@ function vFood(){
  <div class="grid g2">${N.meals.map(m=>`<div class="glass pad"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><b>${m.n}</b><span class="mut" style="font-size:12.5px">${Math.round(m.t.k)} ккал · Б${Math.round(m.t.p)} Ж${Math.round(m.t.f)} У${Math.round(m.t.c)}</span></div><table>${m.items.map(([k,g,lbl])=>`<tr><td>${FOOD[k].n}</td><td class="r">${lbl||g+' г'}</td></tr>`).join('')}</table></div>`).join('')}</div>
  <div class="mut" style="margin:10px 0 4px;font-size:12.5px">Крупы — вес сухими. Продукты можно менять на похожие. Это ориентир, а не назначение врача.</div>`;
  $$('[data-dl]').forEach(b=>b.onclick=()=>{U.log[ds]=(U.log[ds]||[]).filter(x=>x.id!==b.dataset.dl);save();vFood()});
- $('#manAdd').onclick=manualAdd;if(SAMPLE)bindPhoto(N);
+ $('#manAdd').onclick=manualAdd;if(SAMPLE)bindPhoto(N);if($('#pasteC'))$('#pasteC').onclick=pasteClaude;
 }
 function manualAdd(){
  let dirty=false;
@@ -838,6 +855,8 @@ async function doSync(){try{const pend=await LN.getPending();if(pend.notificatio
   else for(const d of e.days)list.push(Object.assign({},base,{id:id++,schedule:{on:{weekday:d+1,hour:h,minute:m},allowWhileIdle:true}}));if(list.length>=60)break}
  if(list.length)await LN.schedule({notifications:list.slice(0,60)})}catch(e){console.log('notif sync error',e)}}
 if(LN){try{LN.addListener('localNotificationActionPerformed',a=>{const id=a&&a.notification&&a.notification.extra&&a.notification.extra.eid,e=U&&U.events.find(x=>x.id===id);if(!e)return;if(e.alarm)showAlarm(e,true);else if(e.kind==='weigh')openWeigh()})}catch(e){}}
+if(NATIVE){try{const AP=(window.Capacitor.Plugins&&window.Capacitor.Plugins.App)||window.Capacitor.registerPlugin('App');const onUrl=u=>{if(!u||!/^ritm:/.test(u))return;const q=u.split('d=')[1];const d=q&&decodeFood(decodeURIComponent(q));if(d&&U&&U.profile){go('food');setTimeout(()=>confirmFood(d),200)}};
+ AP.addListener('appUrlOpen',e=>onUrl(e.url));AP.getLaunchUrl().then(r=>{if(r&&r.url)setTimeout(()=>onUrl(r.url),600)}).catch(()=>{})}catch(e){}}
 /* отступы под чёлку, если WebView не отдаёт env() */
 (function(){const t=document.createElement('div');t.style.cssText='position:fixed;top:0;height:env(safe-area-inset-top,0px);width:1px;visibility:hidden';document.body.appendChild(t);const h=t.offsetHeight;t.remove();
  if(NATIVE&&h===0&&/iPhone|iPad|iPod/.test(navigator.userAgent)){const tall=Math.max(screen.width,screen.height)>=812;document.documentElement.style.setProperty('--st',(tall?50:20)+'px');document.documentElement.style.setProperty('--sb',(tall?30:0)+'px')}})();

@@ -1,0 +1,86 @@
+name: Собрать IPA для ESign
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Установить Capacitor
+        run: npm install
+
+      - name: Создать iOS-проект
+        run: npx cap add ios
+
+      - name: Иконка, звук будильника, разрешения
+        run: |
+          set -e
+          ICONSET=ios/App/App/Assets.xcassets/AppIcon.appiconset
+          for f in "$ICONSET"/*.png; do cp resources/AppIcon-1024.png "$f"; done
+          ls "$ICONSET"
+          cp resources/alarm.wav ios/App/App/alarm.wav
+          gem list xcodeproj -i >/dev/null || sudo gem install xcodeproj
+          ruby -e '
+            require "xcodeproj"
+            p = Xcodeproj::Project.open("ios/App/App.xcodeproj")
+            t = p.targets.find { |x| x.name == "App" }
+            g = p.main_group.find_subpath("App", false)
+            r = g.new_reference("alarm.wav")
+            t.add_resources([r])
+            p.save
+            puts "alarm.wav добавлен в проект"
+          '
+          PL=ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Камера нужна, чтобы фотографировать еду и прогресс'" $PL
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'Доступ к фото нужен, чтобы выбрать фото еды и прогресса'" $PL
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName RITM" $PL || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string RITM" $PL
+
+      - name: Синхронизировать веб-часть
+        run: npx cap sync ios
+
+      - name: Собрать без подписи
+        run: |
+          set -e
+          cd ios/App
+          if [ -d App.xcworkspace ]; then TARGET="-workspace App.xcworkspace"; else TARGET="-project App.xcodeproj"; fi
+          xcodebuild $TARGET -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath "$GITHUB_WORKSPACE/build" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            MARKETING_VERSION=1.0.${{ github.run_number }} CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            build | tail -n 40
+
+      - name: Упаковать IPA
+        run: |
+          set -e
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -n 1)
+          echo "Нашёл: $APP"
+          mkdir -p Payload && cp -R "$APP" Payload/
+          zip -qry RITM.ipa Payload
+          ls -lh RITM.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RITM-ipa
+          path: RITM.ipa
+
+      - name: Выложить в Releases (удобно качать с айфона)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: RITM 1.0.${{ github.run_number }}
+          body: Скачай RITM.ipa на айфоне → «Открыть в ESign» → подписать и установить.
+          files: RITM.ipa
+          make_latest: true

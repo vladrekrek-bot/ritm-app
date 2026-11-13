@@ -1,0 +1,15 @@
+{
+  "appId": "com.shkwizi.ritm",
+  "appName": "RITM",
+  "webDir": "www",
+  "backgroundColor": "#07060f",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#07060f"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

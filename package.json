@@ -1,0 +1,14 @@
+{
+  "name": "ritm-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RITM — режим дня, питание, тренировки (iOS через Capacitor)",
+  "dependencies": {
+    "@capacitor/core": "latest",
+    "@capacitor/ios": "latest",
+    "@capacitor/local-notifications": "latest"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "latest"
+  }
+}
